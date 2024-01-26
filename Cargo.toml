@@ -1,0 +1,22 @@
+[package]
+name = "qdrant_rest_client"
+version = "0.0.1"
+license = "Apache-2"
+description = "The Dapr SDK for WebAssembly."
+repository = "https://github.com/second-state/qdrant-rest-client"
+authors = ["Michael Yuan <michael@secondstate.io>"]
+readme = "README.md"
+keywords = ["qdrant", "ai", "llm", "LlamaEdge", "cloud-native", "wasmedge", "webassembly"]
+edition = "2021"
+
+[lib]
+name = "qdrant"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+http = "0.2"
+anyhow = "1.0"
+reqwest_wasi = { version = "0.11", features = ["json", "wasmedge-tls"] }
+tokio_wasi = { version = "1.21", features = ["rt", "macros", "net", "time"]}
