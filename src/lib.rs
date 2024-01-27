@@ -78,7 +78,6 @@ impl Qdrant {
 
     pub async fn upsert_points(&self, collection_name: &str, points: Vec<Point>) -> Result<(), Error> {
         let params = json!({
-            "wait": true,
             "points": points,
         });
         self.upsert_points_api(collection_name, &params).await
@@ -155,13 +154,16 @@ impl Qdrant {
         );
 
         let body = serde_json::to_vec(params).unwrap_or_default();
+        println!("Upsert request: {:?}", params);
         let client = reqwest::Client::new();
         let res = client.put(&url).header("Content-Type", "application/json").body(body).send().await?;
         if res.status().is_success() {
-            if res.json::<Value>().await?.get("status").unwrap().as_str().unwrap() == "completed" {
+            let v = res.json::<Value>().await?;
+            let status = v.get("status").unwrap().as_str().unwrap();
+            if status == "completed" {
                 Ok(())
             } else {
-                Err(anyhow!("Failed to upsert points"))
+                Err(anyhow!("Failed to upsert points. Status = {}", status))
             }
         } else {
             Err(anyhow!("Failed to upsert points: {}", res.status().as_str()))
