@@ -26,13 +26,16 @@ jobs:
         sudo ACCEPT_EULA=Y apt-get update
         sudo ACCEPT_EULA=Y apt-get upgrade
         sudo apt-get install wget git curl software-properties-common build-essential libjpeg-dev libpng-dev cmake
-    
-    - name: Install and run qdrant
+        
+    - name: Create directory for qdrant
       run: |
-        wget https://github.com/qdrant/qdrant/releases/download/v1.7.3/qdrant-x86_64-unknown-linux-gnu.tar.gz
-        tar xvf qdrant-x86_64-unknown-linux-gnu.tar.gz
-        nohup ./qdrant & 
-
+        mkdir qdrant_storage
+    
+    - name: Run qdrant in Docker
+      uses: addnab/docker-run-action@v3
+      with:
+        image: qdrant/qdrant
+        options: -p 6333:6333 -p 6334:6334 -v $(pwd)/qdrant_storage:/qdrant/storage:z
 
     - name: Install Rust target for wasm
       run: |
