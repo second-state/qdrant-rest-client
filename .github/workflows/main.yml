@@ -27,15 +27,16 @@ jobs:
         sudo ACCEPT_EULA=Y apt-get upgrade
         sudo apt-get install wget git curl software-properties-common build-essential libjpeg-dev libpng-dev cmake
         
-    - name: Create directory for qdrant
-      run: |
-        mkdir qdrant_storage
+#    - name: Create directory for qdrant
+#      run: |
+#        mkdir qdrant_storage
     
     - name: Run qdrant in Docker
       uses: addnab/docker-run-action@v3
       with:
         image: qdrant/qdrant
-        options: -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z
+        # options: -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z
+        options: -d -p 6333:6333
 
     - name: Install Rust target for wasm
       run: |
@@ -45,6 +46,7 @@ jobs:
       run: |
         VERSION=0.13.5
         curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- -v $VERSION --plugins wasmedge_rustls -p /usr/local
+        curl -X PUT 'http://localhost:6333/collections/test_collection' -H 'Content-Type: application/json' --data-raw '{ "vectors": { "size": 4, "distance": "Dot" } }'
 
     - name: Run examples
       run: |
