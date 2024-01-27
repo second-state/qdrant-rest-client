@@ -93,6 +93,7 @@ impl Qdrant {
 
         let v = self.search_points_api(collection_name, &params).await.unwrap();
         let rs : &Vec<Value> = v.get("result").unwrap().as_array().unwrap();
+        println!("Search result is {:?}", rs);
         let mut sps : Vec<ScoredPoint> = Vec::<ScoredPoint>::new();
         for r in rs {
             let sp : ScoredPoint = serde_json::from_value(r.clone()).unwrap();
