@@ -27,18 +27,19 @@ jobs:
         sudo ACCEPT_EULA=Y apt-get upgrade
         sudo apt-get install wget git curl software-properties-common build-essential libjpeg-dev libpng-dev cmake
         
-#    - name: Create directory for qdrant
-#      run: |
-#        mkdir qdrant_storage
-    
     - name: Run qdrant in Docker
-      uses: addnab/docker-run-action@v3
-      with:
-        image: qdrant/qdrant
-        # options: -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z
-        options: -d -p 6333:6333
-        shell: bash
-        run: |
+      run: |
+        mkdir qdrant_storage
+        nohup docker run -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z qdrant/qdrant
+    
+#    - name: Run qdrant in Docker
+#      uses: addnab/docker-run-action@v3
+#      with:
+#        image: qdrant/qdrant
+#        # options: -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z
+#        options: -d -p 6333:6333
+#        shell: bash
+#        run: |
           entrypoint.sh
 
     - name: Install Rust target for wasm
