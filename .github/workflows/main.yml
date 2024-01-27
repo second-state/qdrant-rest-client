@@ -37,6 +37,9 @@ jobs:
         image: qdrant/qdrant
         # options: -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z
         options: -d -p 6333:6333
+        shell: bash
+        run: |
+          entrypoint.sh
 
     - name: Install Rust target for wasm
       run: |
