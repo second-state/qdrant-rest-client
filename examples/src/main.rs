@@ -17,11 +17,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
         points.push(p);
     }
-    println!("Upsert points {:?}", points);
     let r = client.upsert_points("my_test", points).await;
     println!("Upsert points result is {:?}", r);
 
-    let q = vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
+    println!("The collection size is {}", client.collection_info("my_test"));
+
+    let q = vec![0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 6.0, 7.0, 8.0, 9.0];
     let r = client.search_points("my_test", q, 2).await;
     println!("Search result points are {:?}", r);
     Ok(())
