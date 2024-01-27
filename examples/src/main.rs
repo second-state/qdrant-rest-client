@@ -17,6 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
         points.push(p);
     }
+    println!("Upsert points {:?}", points);
     let r = client.upsert_points("my_test", points).await;
     println!("Upsert points result is {:?}", r);
 
