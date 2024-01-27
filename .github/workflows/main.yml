@@ -35,7 +35,7 @@ jobs:
       uses: addnab/docker-run-action@v3
       with:
         image: qdrant/qdrant
-        options: -p 6333:6333 -p 6334:6334 -v qdrant_storage:/qdrant/storage:z
+        options: -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z
 
     - name: Install Rust target for wasm
       run: |
