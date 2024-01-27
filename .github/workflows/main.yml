@@ -1,0 +1,54 @@
+name: main
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'info'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Install apt-get packages
+      run: |
+        echo RESET grub-efi/install_devices | sudo debconf-communicate grub-pc
+        sudo ACCEPT_EULA=Y apt-get update
+        sudo ACCEPT_EULA=Y apt-get upgrade
+        sudo apt-get install wget git curl software-properties-common build-essential libjpeg-dev libpng-dev cmake
+    
+    - name: Install and run qdrant
+      run: |
+        wget https://github.com/qdrant/qdrant/releases/download/v1.7.3/qdrant-x86_64-unknown-linux-gnu.tar.gz
+        tar xvf qdrant-x86_64-unknown-linux-gnu.tar.gz
+        nohup ./qdrant & 
+
+
+    - name: Install Rust target for wasm
+      run: |
+        rustup target add wasm32-wasi
+
+    - name: Install WasmEdge
+      run: |
+        VERSION=0.13.5
+        curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- -v $VERSION --plugins wasmedge_rustls -p /usr/local
+        cat nphup.out
+
+    - name: Run examples
+      run: |
+        cd examples-api-classify
+        cargo build --target wasm32-wasi --release
+        wasmedgec target/wasm32-wasi/release/qdrant_examples.wasm qdrant_examples.wasm
+        wasmedge qdrant_examples.wasm
+
+
