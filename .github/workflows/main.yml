@@ -40,7 +40,7 @@ jobs:
 #        options: -d -p 6333:6333
 #        shell: bash
 #        run: |
-          entrypoint.sh
+#          entrypoint.sh
 
     - name: Install Rust target for wasm
       run: |
