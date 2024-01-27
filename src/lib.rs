@@ -78,7 +78,6 @@ impl Qdrant {
 
     pub async fn upsert_points(&self, collection_name: &str, points: Vec<Point>) -> Result<(), Error> {
         let params = json!({
-            "wait": true,
             "points": points,
         });
         self.upsert_points_api(collection_name, &params).await
@@ -152,7 +151,7 @@ impl Qdrant {
 
     pub async fn upsert_points_api(&self, collection_name: &str, params: &Value) -> Result<(), Error> {
         let url = format!(
-            "{}/collections/{}/points",
+            "{}/collections/{}/points?wait=true",
             self.url_base,
             collection_name,
         );
