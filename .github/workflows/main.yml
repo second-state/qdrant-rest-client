@@ -26,7 +26,7 @@ jobs:
         sudo ACCEPT_EULA=Y apt-get update
         sudo ACCEPT_EULA=Y apt-get upgrade
         sudo apt-get install wget git curl software-properties-common build-essential libjpeg-dev libpng-dev cmake
-        
+
     - name: Run qdrant in Docker
       run: |
         mkdir qdrant_storage
