@@ -78,6 +78,7 @@ impl Qdrant {
 
     pub async fn upsert_points(&self, collection_name: &str, points: Vec<Point>) -> Result<(), Error> {
         let params = json!({
+            "wait": true,
             "points": points,
         });
         self.upsert_points_api(collection_name, &params).await
