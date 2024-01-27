@@ -160,7 +160,7 @@ impl Qdrant {
         if res.status().is_success() {
             let v = res.json::<Value>().await?;
             let status = v.get("status").unwrap().as_str().unwrap();
-            if status == "completed" {
+            if status == "ok" {
                 Ok(())
             } else {
                 Err(anyhow!("Failed to upsert points. Status = {}", status))
