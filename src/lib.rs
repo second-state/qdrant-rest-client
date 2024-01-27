@@ -87,6 +87,8 @@ impl Qdrant {
         let params = json!({
             "vector": point,
             "limit": limit,
+            "with_payload": true,
+            "with_vector": true,
         });
 
         let v = self.search_points_api(collection_name, &params).await.unwrap();
@@ -154,7 +156,6 @@ impl Qdrant {
         );
 
         let body = serde_json::to_vec(params).unwrap_or_default();
-        println!("Upsert request: {:?}", params);
         let client = reqwest::Client::new();
         let res = client.put(&url).header("Content-Type", "application/json").body(body).send().await?;
         if res.status().is_success() {
