@@ -6,7 +6,7 @@ description = "The Dapr SDK for WebAssembly."
 repository = "https://github.com/second-state/qdrant-rest-client"
 authors = ["Michael Yuan <michael@secondstate.io>"]
 readme = "README.md"
-keywords = ["qdrant", "ai", "llm", "LlamaEdge", "cloud-native", "wasmedge", "webassembly"]
+keywords = ["qdrant", "llm", "LlamaEdge", "wasmedge", "ai"]
 edition = "2021"
 
 [lib]
