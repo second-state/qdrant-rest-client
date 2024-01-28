@@ -243,7 +243,7 @@ impl Qdrant {
 
     pub async fn delete_points_api(&self, collection_name: &str, params: &Value) -> Result<(), Error> {
         let url = format!(
-            "{}/collections/{}/points/delete",
+            "{}/collections/{}/points/delete?wait=true",
             self.url_base,
             collection_name,
         );
