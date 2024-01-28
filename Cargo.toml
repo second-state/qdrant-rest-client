@@ -1,7 +1,7 @@
 [package]
 name = "qdrant_rest_client"
 version = "0.0.1"
-license = "Apache-2"
+license = "Apache-2.0"
 description = "The Dapr SDK for WebAssembly."
 repository = "https://github.com/second-state/qdrant-rest-client"
 authors = ["Michael Yuan <michael@secondstate.io>"]
