@@ -101,6 +101,36 @@ impl Qdrant {
         sps
     }
 
+    pub async fn get_points(&self, collection_name: &str, ids: Vec<u64>) -> Vec<Point> {
+        let params = json!({
+            "ids": ids,
+            "with_payload": true,
+            "with_vector": true,
+        });
+
+        let v = self.get_points_api(collection_name, &params).await.unwrap();
+        let rs : &Vec<Value> = v.get("result").unwrap().as_array().unwrap();
+        let mut ps : Vec<Point> = Vec::<Point>::new();
+        for r in rs {
+            let p : Point = serde_json::from_value(r.clone()).unwrap();
+            ps.push(p);
+        }
+        ps
+    }
+
+    pub async fn get_point(&self, collection_name: &str, id: u64) -> Point {
+        let v = self.get_point_api(collection_name, id).await.unwrap();
+        let r = v.get("result").unwrap();
+        serde_json::from_value(r.clone()).unwrap()
+    }
+
+    pub async fn delete_points(&self, collection_name: &str, ids: Vec<u64>) -> Result<(), Error> {
+        let params = json!({
+            "points": ids,
+        });
+        self.delete_points_api(collection_name, &params).await
+    }
+
     /// REST API functions
     pub async fn collection_info_api(&self, collection_name: &str) -> Result<Value, Error> {
         let url = format!(
@@ -181,8 +211,51 @@ impl Qdrant {
 
         let body = serde_json::to_vec(params).unwrap_or_default();
         let client = reqwest::Client::new();
-        let sp = client.post(&url).header("Content-Type", "application/json").body(body).send().await?.json().await?;
-        Ok(sp)
+        let json = client.post(&url).header("Content-Type", "application/json").body(body).send().await?.json().await?;
+        Ok(json)
+    }
+
+    pub async fn get_points_api(&self, collection_name: &str, params: &Value) -> Result<Value, Error> {
+        let url = format!(
+            "{}/collections/{}/points",
+            self.url_base,
+            collection_name,
+        );
+
+        let body = serde_json::to_vec(params).unwrap_or_default();
+        let client = reqwest::Client::new();
+        let json = client.post(&url).header("Content-Type", "application/json").body(body).send().await?.json().await?;
+        Ok(json)
+    }
+
+    pub async fn get_point_api(&self, collection_name: &str, id: u64) -> Result<Value, Error> {
+        let url = format!(
+            "{}/collections/{}/points/{}",
+            self.url_base,
+            collection_name,
+            id,
+        );
+
+        let client = reqwest::Client::new();
+        let json = client.get(&url).header("Content-Type", "application/json").send().await?.json().await?;
+        Ok(json)
+    }
+
+    pub async fn delete_points_api(&self, collection_name: &str, params: &Value) -> Result<(), Error> {
+        let url = format!(
+            "{}/collections/{}/points/delete",
+            self.url_base,
+            collection_name,
+        );
+
+        let body = serde_json::to_vec(params).unwrap_or_default();
+        let client = reqwest::Client::new();
+        let res = client.post(&url).header("Content-Type", "application/json").body(body).send().await?;
+        if res.status().is_success() {
+            Ok(())
+        } else {
+            Err(anyhow!("Failed to delete points: {}", res.status().as_str()))
+        }
     }
 
 }

@@ -33,6 +33,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     println!("The collection size is {}", client.collection_info("my_test").await);
 
+    let p = client.get_point("my_test", 2).await;
+    println!("The second point is {:?}", p);
+
+    let ps = client.get_points("my_test", vec!(1, 2, 3, 4, 5, 6)).await;
+    println!("The 1-6 points are {:?}", ps);
+
+    let q = vec![0.2, 0.1, 0.9, 0.7];
+    let r = client.search_points("my_test", q, 2).await;
+    println!("Search result points are {:?}", r);
+
+    let r = client.delete_points("my_test", vec!(1, 4)).await;
+    println!("Delete points result is {:?}", r);
+
+    println!("The collection size is {}", client.collection_info("my_test").await);
+
     let q = vec![0.2, 0.1, 0.9, 0.7];
     let r = client.search_points("my_test", q, 2).await;
     println!("Search result points are {:?}", r);
