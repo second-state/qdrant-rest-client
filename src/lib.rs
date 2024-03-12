@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error};
+use anyhow::{anyhow, bail, Error};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::{Map, Value};
@@ -98,7 +98,7 @@ impl Qdrant {
         point: Vec<f32>,
         limit: u64,
         score_threshold: Option<f32>,
-    ) -> Vec<ScoredPoint> {
+    ) -> Result<Vec<ScoredPoint>, Error> {
         let score_threshold = match score_threshold {
             Some(v) => v,
             None => 0.0,
@@ -112,17 +112,31 @@ impl Qdrant {
             "score_threshold": score_threshold,
         });
 
-        let v = self
-            .search_points_api(collection_name, &params)
-            .await
-            .unwrap();
-        let rs: &Vec<Value> = v.get("result").unwrap().as_array().unwrap();
-        let mut sps: Vec<ScoredPoint> = Vec::<ScoredPoint>::new();
-        for r in rs {
-            let sp: ScoredPoint = serde_json::from_value(r.clone()).unwrap();
-            sps.push(sp);
+        let v = match self.search_points_api(collection_name, &params).await {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        match v.get("result") {
+            Some(v) => match v.as_array() {
+                Some(rs) => {
+                    let mut sps: Vec<ScoredPoint> = Vec::<ScoredPoint>::new();
+                    for r in rs {
+                        let sp: ScoredPoint = serde_json::from_value(r.clone()).unwrap();
+                        sps.push(sp);
+                    }
+                    return Ok(sps);
+                }
+                None => {
+                    bail!("The value corresponding to the 'result' key is not an array.");
+                }
+            },
+            None => {
+                bail!("The given key 'result' does not exist.");
+            }
         }
-        sps
     }
 
     pub async fn get_points(&self, collection_name: &str, ids: Vec<u64>) -> Vec<Point> {
