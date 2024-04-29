@@ -9,17 +9,28 @@ readme = "README.md"
 keywords = ["qdrant", "llm", "LlamaEdge", "wasmedge", "ai"]
 edition = "2021"
 
+[patch.crates-io]
+socket2 = { git = "https://github.com/second-state/socket2.git", branch = "v0.5.x" }
+reqwest = { git = "https://github.com/second-state/wasi_reqwest.git", branch = "0.11.x" }
+hyper = { git = "https://github.com/second-state/wasi_hyper.git", branch = "v0.14.x" }
+tokio = { git = "https://github.com/second-state/wasi_tokio.git", branch = "v1.36.x" }
+
+
 [lib]
 name = "qdrant"
 path = "src/lib.rs"
 
 [dependencies]
+reqwest = { version = "0.11", default-features = false, features = [
+    "json",
+    "rustls-tls",
+], git = "https://github.com/second-state/wasi_reqwest.git", branch = "0.11.x" }
+
+tokio = { version = "1", features = [
+    "full",
+], git = "https://github.com/second-state/wasi_tokio.git", branch = "v1.36.x" }
+
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-http = "0.2"
+http = "1.1"
 anyhow = "1.0"
-reqwest_wasi = { version = "0.11", features = ["json"] }
-tokio_wasi = { version = "1.21", features = ["rt", "macros", "net", "time"] }
-
-[features]
-wasmedge-tls = ["reqwest_wasi/wasmedge-tls"]
