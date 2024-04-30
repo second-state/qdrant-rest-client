@@ -11,7 +11,7 @@ The key requirements for this unofficial client are two folds:
 Install WasmEdge and Rust tools.
 
 ```
-curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- --plugins wasmedge_rustls
+curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
 source $HOME/.wasmedge/env
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -32,7 +32,7 @@ Build and run the `examples` in this repo.
 
 ```
 cd examples
-cargo build --target wasm32-wasi --release
+RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasi --release
 wasmedge target/wasm32-wasi/release/qdrant_examples.wasm
 ```
 
@@ -82,3 +82,48 @@ Here is the code from the [examples/src/main.rs](examples/src/main.rs) to show h
     println!("The collection size is {}", client.collection_info("my_test").await);
 ```
 
+## Writing code
+
+Add the following patches to `cargo.toml` and then you can use the `qdrant_rest_client` and `tokio` crates as regular dependencies.
+
+```
+[patch.crates-io]
+socket2 = { git = "https://github.com/second-state/socket2.git", branch = "v0.5.x" }
+reqwest = { git = "https://github.com/second-state/wasi_reqwest.git", branch = "0.11.x" }
+hyper = { git = "https://github.com/second-state/wasi_hyper.git", branch = "v0.14.x" }
+tokio = { git = "https://github.com/second-state/wasi_tokio.git", branch = "v1.36.x" }
+
+[dependencies]
+anyhow = "1.0"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+url = "2.3"
+tokio = { version = "1", features = [
+    "io-util",
+    "fs",
+    "net",
+    "time",
+    "rt",
+    "macros",
+] }
+qdrant_rest_client = "0.1"
+```
+
+To build it, you need to pass the Rust compiler flags as the above quick start. 
+
+```
+RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasi --release
+```
+
+Or, you can add to the `.cargo/config.toml` file.
+
+```
+[build]
+target = "wasm32-wasi"
+rustflags = ["--cfg", "wasmedge", "--cfg", "tokio_unstable"]
+
+[target.wasm32-wasi]
+runner = "wasmedge"
+```
+
+After that you can just `cargo build` and `cargo run` to build and run the application.
