@@ -45,7 +45,7 @@ jobs:
     - name: Run examples
       run: |
         cd examples
-        cargo build --target wasm32-wasi --release
+        RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/qdrant_examples.wasm qdrant_examples.wasm
         wasmedge qdrant_examples.wasm
 
