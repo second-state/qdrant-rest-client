@@ -1,6 +1,6 @@
 [package]
 name = "qdrant_rest_client"
-version = "0.1.0"
+version = "0.1.1"
 license = "Apache-2.0"
 description = "The Qdrant SDK for WebAssembly."
 repository = "https://github.com/second-state/qdrant-rest-client"
@@ -21,12 +21,9 @@ name = "qdrant"
 path = "src/lib.rs"
 
 [dependencies]
-reqwest = { version = "0.11", default-features = false, features = [
-    "json",
-    "rustls-tls",
-]}
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 
-tokio = { version = "1", features = ["full"]}
+tokio = { version = "1", features = ["full"] }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
