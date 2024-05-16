@@ -130,11 +130,11 @@ impl Qdrant {
                     return Ok(sps);
                 }
                 None => {
-                    bail!("The value corresponding to the 'result' key is not an array.");
+                    bail!("[qdrant] The value corresponding to the 'result' key is not an array.");
                 }
             },
             None => {
-                bail!("The given key 'result' does not exist.");
+                bail!("[qdrant] The given key 'result' does not exist.");
             }
         }
     }
@@ -203,7 +203,7 @@ impl Qdrant {
             Ok(())
         } else {
             Err(anyhow!(
-                "Failed to create collection: {}",
+                "[qdrant] Failed to create collection: {}",
                 res.status().as_str()
             ))
         }
@@ -222,7 +222,7 @@ impl Qdrant {
             Ok(())
         } else {
             Err(anyhow!(
-                "Failed to delete collection: {}",
+                "[qdrant] Failed to delete collection: {}",
                 res.status().as_str()
             ))
         }
@@ -252,11 +252,14 @@ impl Qdrant {
             if status == "ok" {
                 Ok(())
             } else {
-                Err(anyhow!("Failed to upsert points. Status = {}", status))
+                Err(anyhow!(
+                    "[qdrant] Failed to upsert points. Status = {}",
+                    status
+                ))
             }
         } else {
             Err(anyhow!(
-                "Failed to upsert points: {}",
+                "[qdrant] Failed to upsert points: {}",
                 res.status().as_str()
             ))
         }
@@ -274,15 +277,24 @@ impl Qdrant {
 
         let body = serde_json::to_vec(params).unwrap_or_default();
         let client = reqwest::Client::new();
-        let json = client
+        let response = client
             .post(&url)
             .header("Content-Type", "application/json")
             .body(body)
             .send()
-            .await?
-            .json()
             .await?;
-        Ok(json)
+
+        let status_code = response.status();
+        match status_code.is_success() {
+            true => {
+                let json = response.json().await?;
+                Ok(json)
+            }
+            false => {
+                let status = status_code.as_str();
+                Err(anyhow!("[qdrant] Failed to search points: {}", status))
+            }
+        }
     }
 
     pub async fn get_points_api(
@@ -344,7 +356,7 @@ impl Qdrant {
             Ok(())
         } else {
             Err(anyhow!(
-                "Failed to delete points: {}",
+                "[qdrant] Failed to delete points: {}",
                 res.status().as_str()
             ))
         }
