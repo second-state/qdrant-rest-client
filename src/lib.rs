@@ -71,6 +71,10 @@ impl Qdrant {
     }
 
     pub async fn create_collection(&self, collection_name: &str, size: u32) -> Result<(), Error> {
+        if self.collection_exists(collection_name).await? {
+            bail!("Collection '{}' already exists", collection_name);
+        }
+
         let params = json!({
             "vectors": {
                 "size": size,
@@ -79,6 +83,18 @@ impl Qdrant {
             }
         });
         self.create_collection_api(collection_name, &params).await
+    }
+
+    pub async fn collection_exists(&self, collection_name: &str) -> Result<bool, Error> {
+        self.collection_exists_api(collection_name).await
+    }
+
+    pub async fn delete_collection(&self, collection_name: &str) -> Result<(), Error> {
+        if !self.collection_exists(collection_name).await? {
+            bail!("Collection '{}' does not exist", collection_name);
+        }
+
+        self.delete_collection_api(collection_name).await
     }
 
     pub async fn upsert_points(
@@ -207,6 +223,13 @@ impl Qdrant {
                 res.status().as_str()
             ))
         }
+    }
+
+    pub async fn collection_exists_api(&self, collection_name: &str) -> Result<bool, Error> {
+        let url = format!("{}/collections/{}/exists", self.url_base, collection_name,);
+        let client = reqwest::Client::new();
+        let res = client.get(&url).send().await?;
+        Ok(res.status().is_success())
     }
 
     pub async fn delete_collection_api(&self, collection_name: &str) -> Result<(), Error> {
