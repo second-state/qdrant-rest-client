@@ -82,7 +82,10 @@ impl Qdrant {
                 "on_disk": true,
             }
         });
-        self.create_collection_api(collection_name, &params).await
+        if !self.create_collection_api(collection_name, &params).await? {
+            bail!("Failed to create collection '{}'", collection_name);
+        }
+        Ok(())
     }
 
     pub async fn collection_exists(&self, collection_name: &str) -> Result<bool, Error> {
@@ -94,7 +97,10 @@ impl Qdrant {
             bail!("Collection '{}' does not exist", collection_name);
         }
 
-        self.delete_collection_api(collection_name).await
+        if !self.delete_collection_api(collection_name).await? {
+            bail!("Failed to delete collection '{}'", collection_name);
+        }
+        Ok(())
     }
 
     pub async fn upsert_points(
@@ -204,7 +210,7 @@ impl Qdrant {
         &self,
         collection_name: &str,
         params: &Value,
-    ) -> Result<(), Error> {
+    ) -> Result<bool, Error> {
         let url = format!("{}/collections/{}", self.url_base, collection_name,);
 
         let body = serde_json::to_vec(params).unwrap_or_default();
@@ -215,13 +221,18 @@ impl Qdrant {
             .body(body)
             .send()
             .await?;
-        if res.status().is_success() {
-            Ok(())
-        } else {
-            Err(anyhow!(
+
+        match res.status().is_success() {
+            true => {
+                // get response body as json
+                let json = res.json::<Value>().await?;
+                let sucess = json.get("result").unwrap().as_bool().unwrap();
+                Ok(sucess)
+            }
+            false => Err(anyhow!(
                 "[qdrant] Failed to create collection: {}",
-                res.status().as_str()
-            ))
+                collection_name
+            )),
         }
     }
 
@@ -229,10 +240,25 @@ impl Qdrant {
         let url = format!("{}/collections/{}/exists", self.url_base, collection_name,);
         let client = reqwest::Client::new();
         let res = client.get(&url).send().await?;
-        Ok(res.status().is_success())
+
+        match res.status().is_success() {
+            true => {
+                // get response body as json
+                let json = res.json::<Value>().await?;
+                let exists = json
+                    .get("result")
+                    .unwrap()
+                    .get("exists")
+                    .unwrap()
+                    .as_bool()
+                    .unwrap();
+                Ok(exists)
+            }
+            false => Err(anyhow!("[qdrant] Failed to check collection existence")),
+        }
     }
 
-    pub async fn delete_collection_api(&self, collection_name: &str) -> Result<(), Error> {
+    pub async fn delete_collection_api(&self, collection_name: &str) -> Result<bool, Error> {
         let url = format!("{}/collections/{}", self.url_base, collection_name,);
 
         let client = reqwest::Client::new();
@@ -241,13 +267,18 @@ impl Qdrant {
             .header("Content-Type", "application/json")
             .send()
             .await?;
-        if res.status().is_success() {
-            Ok(())
-        } else {
-            Err(anyhow!(
+
+        match res.status().is_success() {
+            true => {
+                // get response body as json
+                let json = res.json::<Value>().await?;
+                let sucess = json.get("result").unwrap().as_bool().unwrap();
+                Ok(sucess)
+            }
+            false => Err(anyhow!(
                 "[qdrant] Failed to delete collection: {}",
-                res.status().as_str()
-            ))
+                collection_name
+            )),
         }
     }
 
