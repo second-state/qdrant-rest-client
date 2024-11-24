@@ -1,9 +1,37 @@
+use clap::Parser;
 use qdrant::*;
 use serde_json::json;
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, default_value = "http://localhost:6333")]
+    qdrant_service_endpoint: String,
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let client = qdrant::Qdrant::new();
+    let cli = Cli::parse();
+
+    // read api-key from the environment variable
+    let api_key = std::env::var("QDRANT_API_KEY").ok();
+
+    let mut client = qdrant::Qdrant::new_with_url(cli.qdrant_service_endpoint);
+    if let Some(api_key) = api_key {
+        client.set_api_key(api_key);
+    }
+
+    let collection_name = "my_test";
+
+    // check if the collection exists. If present, delete it.
+    if let Ok(true) = client.collection_exists(collection_name).await {
+        println!("Collection `{}` exists", collection_name);
+        match client.delete_collection(collection_name).await {
+            Ok(_) => println!("Collection `{}` deleted", collection_name),
+            Err(e) => println!("Error deleting collection: {:?}", e),
+        }
+    };
+
     // Create a collection with 10-dimensional vectors
     let r = client.create_collection("my_test", 4).await;
     println!("Create collection result is {:?}", r);

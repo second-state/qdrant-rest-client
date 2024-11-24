@@ -14,12 +14,6 @@ anyhow = "1.0"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 url = "2.3"
-tokio = { version = "1", features = [
-    "io-util",
-    "fs",
-    "net",
-    "time",
-    "rt",
-    "macros",
-] }
-qdrant_rest_client = "0.1"
+tokio = { version = "1", features = ["io-util", "fs", "net", "time", "rt", "macros"] }
+clap = { version = "4.4.6", features = ["cargo", "derive"] }
+qdrant_rest_client = { path = ".." }
