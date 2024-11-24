@@ -10,7 +10,7 @@ The key requirements for this unofficial client are two folds:
 
 Install WasmEdge and Rust tools.
 
-```
+```bash
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
 source $HOME/.wasmedge/env
 
@@ -20,7 +20,7 @@ rustup target add wasm32-wasi
 
 Start a Qdrant instance in Docker using the [quick start guide](https://qdrant.tech/documentation/quick-start/).
 
-```
+```bash
 mkdir qdrant_storage
 
 docker run -p 6333:6333 -p 6334:6334 \
@@ -30,10 +30,15 @@ docker run -p 6333:6333 -p 6334:6334 \
 
 Build and run the `examples` in this repo.
 
-```
-cd examples
-RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasi --release
-wasmedge target/wasm32-wasi/release/qdrant_examples.wasm
+```bash
+# build the example
+RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasip1 --release --example qdrant_examples
+
+# run the example
+wasmedge ./target/wasm32-wasip1/release/examples/qdrant_examples.wasm
+
+# Or, run the example with Qdrant service endpoint and API key
+wasmedge --env QDRANT_API_KEY={your_api_key} ./target/wasm32-wasip1/release/examples/qdrant_examples.wasm -q {your_qdrant_service_endpoint}
 ```
 
 ## Examples
@@ -86,7 +91,7 @@ Here is the code from the [examples/src/main.rs](examples/src/main.rs) to show h
 
 Add the following patches to `cargo.toml` and then you can use the `qdrant_rest_client` and `tokio` crates as regular dependencies.
 
-```
+```bash
 [patch.crates-io]
 socket2 = { git = "https://github.com/second-state/socket2.git", branch = "v0.5.x" }
 reqwest = { git = "https://github.com/second-state/wasi_reqwest.git", branch = "0.11.x" }
@@ -109,17 +114,17 @@ tokio = { version = "1", features = [
 qdrant_rest_client = "0.1"
 ```
 
-To build it, you need to pass the Rust compiler flags as the above quick start. 
+To build it, you need to pass the Rust compiler flags as the above quick start.
 
-```
-RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasi --release
+```bash
+RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasip1 --release
 ```
 
 Or, you can add to the `.cargo/config.toml` file.
 
-```
+```bash
 [build]
-target = "wasm32-wasi"
+target = "wasm32-wasip1"
 rustflags = ["--cfg", "wasmedge", "--cfg", "tokio_unstable"]
 
 [target.wasm32-wasi]
