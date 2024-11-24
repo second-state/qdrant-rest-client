@@ -44,17 +44,23 @@ pub struct ScoredPoint {
 
 pub struct Qdrant {
     pub url_base: String,
+    api_key: Option<String>,
 }
 
 impl Qdrant {
     pub fn new_with_url(url_base_: String) -> Qdrant {
         Qdrant {
             url_base: url_base_,
+            api_key: None,
         }
     }
 
     pub fn new() -> Qdrant {
         Qdrant::new_with_url("http://localhost:6333".to_string())
+    }
+
+    pub fn set_api_key(&mut self, api_key: impl Into<String>) {
+        self.api_key = Some(api_key.into());
     }
 }
 
@@ -196,13 +202,29 @@ impl Qdrant {
         let url = format!("{}/collections/{}", self.url_base, collection_name,);
 
         let client = reqwest::Client::new();
-        let ci = client
-            .get(&url)
-            .header("Content-Type", "application/json")
-            .send()
-            .await?
-            .json()
-            .await?;
+
+        let ci = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .get(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+                    .json()
+                    .await?
+            }
+            None => {
+                client
+                    .get(&url)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+                    .json()
+                    .await?
+            }
+        };
+
         Ok(ci)
     }
 
@@ -215,12 +237,25 @@ impl Qdrant {
 
         let body = serde_json::to_vec(params).unwrap_or_default();
         let client = reqwest::Client::new();
-        let res = client
-            .put(&url)
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-            .await?;
+        let res = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .put(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+            None => {
+                client
+                    .put(&url)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+        };
 
         match res.status().is_success() {
             true => {
@@ -239,7 +274,24 @@ impl Qdrant {
     pub async fn collection_exists_api(&self, collection_name: &str) -> Result<bool, Error> {
         let url = format!("{}/collections/{}/exists", self.url_base, collection_name,);
         let client = reqwest::Client::new();
-        let res = client.get(&url).send().await?;
+
+        let res = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .get(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+            }
+            None => {
+                client
+                    .get(&url)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+            }
+        };
 
         match res.status().is_success() {
             true => {
@@ -262,11 +314,24 @@ impl Qdrant {
         let url = format!("{}/collections/{}", self.url_base, collection_name,);
 
         let client = reqwest::Client::new();
-        let res = client
-            .delete(&url)
-            .header("Content-Type", "application/json")
-            .send()
-            .await?;
+
+        let res = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .delete(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+            }
+            None => {
+                client
+                    .delete(&url)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+            }
+        };
 
         match res.status().is_success() {
             true => {
@@ -294,12 +359,26 @@ impl Qdrant {
 
         let body = serde_json::to_vec(params).unwrap_or_default();
         let client = reqwest::Client::new();
-        let res = client
-            .put(&url)
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-            .await?;
+        let res = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .put(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+            None => {
+                client
+                    .put(&url)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+        };
+
         if res.status().is_success() {
             let v = res.json::<Value>().await?;
             let status = v.get("status").unwrap().as_str().unwrap();
@@ -331,12 +410,25 @@ impl Qdrant {
 
         let body = serde_json::to_vec(params).unwrap_or_default();
         let client = reqwest::Client::new();
-        let response = client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-            .await?;
+        let response = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .post(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+            None => {
+                client
+                    .post(&url)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+        };
 
         let status_code = response.status();
         match status_code.is_success() {
@@ -360,14 +452,31 @@ impl Qdrant {
 
         let body = serde_json::to_vec(params).unwrap_or_default();
         let client = reqwest::Client::new();
-        let json = client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-            .await?
-            .json()
-            .await?;
+
+        let json = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .post(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+                    .json()
+                    .await?
+            }
+            None => {
+                client
+                    .post(&url)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+                    .json()
+                    .await?
+            }
+        };
+
         Ok(json)
     }
 
@@ -378,13 +487,29 @@ impl Qdrant {
         );
 
         let client = reqwest::Client::new();
-        let json = client
-            .get(&url)
-            .header("Content-Type", "application/json")
-            .send()
-            .await?
-            .json()
-            .await?;
+
+        let json = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .get(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+                    .json()
+                    .await?
+            }
+            None => {
+                client
+                    .get(&url)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await?
+                    .json()
+                    .await?
+            }
+        };
+
         Ok(json)
     }
 
@@ -400,12 +525,27 @@ impl Qdrant {
 
         let body = serde_json::to_vec(params).unwrap_or_default();
         let client = reqwest::Client::new();
-        let res = client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-            .await?;
+
+        let res = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .post(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+            None => {
+                client
+                    .post(&url)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .send()
+                    .await?
+            }
+        };
+
         if res.status().is_success() {
             Ok(())
         } else {
