@@ -1,3 +1,7 @@
+#[cfg(feature = "logging")]
+#[macro_use]
+extern crate log;
+
 use anyhow::{anyhow, bail, Error};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -67,6 +71,9 @@ impl Qdrant {
 impl Qdrant {
     /// Shortcut functions
     pub async fn collection_info(&self, collection_name: &str) -> u64 {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "get collection info: '{}'", collection_name);
+
         let v = self.collection_info_api(collection_name).await.unwrap();
         v.get("result")
             .unwrap()
@@ -77,8 +84,25 @@ impl Qdrant {
     }
 
     pub async fn create_collection(&self, collection_name: &str, size: u32) -> Result<(), Error> {
-        if self.collection_exists(collection_name).await? {
-            bail!("Collection '{}' already exists", collection_name);
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "create collection '{}'", collection_name);
+
+        match self.collection_exists(collection_name).await {
+            Ok(false) => (),
+            Ok(true) => {
+                let err_msg = format!("Collection '{}' already exists", collection_name);
+
+                #[cfg(feature = "logging")]
+                error!(target: "stdout", "{}", &err_msg);
+
+                bail!(err_msg);
+            }
+            Err(e) => {
+                #[cfg(feature = "logging")]
+                error!(target: "stdout", "{}", e);
+
+                bail!("{}", e);
+            }
         }
 
         let params = json!({
@@ -94,13 +118,42 @@ impl Qdrant {
         Ok(())
     }
 
+    pub async fn list_collections(&self) -> Result<Vec<String>, Error> {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "list collections");
+
+        self.list_collections_api().await
+    }
+
     pub async fn collection_exists(&self, collection_name: &str) -> Result<bool, Error> {
-        self.collection_exists_api(collection_name).await
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "check collection existence: {}", collection_name);
+
+        let collection_names = self.list_collections().await?;
+
+        Ok(collection_names.contains(&collection_name.to_string()))
     }
 
     pub async fn delete_collection(&self, collection_name: &str) -> Result<(), Error> {
-        if !self.collection_exists(collection_name).await? {
-            bail!("Collection '{}' does not exist", collection_name);
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "delete collection '{}'", collection_name);
+
+        match self.collection_exists(collection_name).await {
+            Ok(true) => (),
+            Ok(false) => {
+                let err_msg = format!("Not found collection '{}'", collection_name);
+
+                #[cfg(feature = "logging")]
+                error!(target: "stdout", "{}", &err_msg);
+
+                bail!(err_msg);
+            }
+            Err(e) => {
+                #[cfg(feature = "logging")]
+                error!(target: "stdout", "{}", e);
+
+                bail!("{}", e);
+            }
         }
 
         if !self.delete_collection_api(collection_name).await? {
@@ -114,6 +167,9 @@ impl Qdrant {
         collection_name: &str,
         points: Vec<Point>,
     ) -> Result<(), Error> {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "upsert {} points to collection '{}'", points.len(), collection_name);
+
         let params = json!({
             "points": points,
         });
@@ -127,6 +183,9 @@ impl Qdrant {
         limit: u64,
         score_threshold: Option<f32>,
     ) -> Result<Vec<ScoredPoint>, Error> {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "search points in collection '{}'", collection_name);
+
         let score_threshold = match score_threshold {
             Some(v) => v,
             None => 0.0,
@@ -168,6 +227,9 @@ impl Qdrant {
     }
 
     pub async fn get_points(&self, collection_name: &str, ids: Vec<u64>) -> Vec<Point> {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "get points from collection '{}'", collection_name);
+
         let params = json!({
             "ids": ids,
             "with_payload": true,
@@ -185,12 +247,18 @@ impl Qdrant {
     }
 
     pub async fn get_point(&self, collection_name: &str, id: u64) -> Point {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "get point from collection '{}' with id {}", collection_name, id);
+
         let v = self.get_point_api(collection_name, id).await.unwrap();
         let r = v.get("result").unwrap();
         serde_json::from_value(r.clone()).unwrap()
     }
 
     pub async fn delete_points(&self, collection_name: &str, ids: Vec<u64>) -> Result<(), Error> {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "delete points from collection '{}'", collection_name);
+
         let params = json!({
             "points": ids,
         });
@@ -271,43 +339,146 @@ impl Qdrant {
         }
     }
 
-    pub async fn collection_exists_api(&self, collection_name: &str) -> Result<bool, Error> {
-        let url = format!("{}/collections/{}/exists", self.url_base, collection_name,);
+    pub async fn list_collections_api(&self) -> Result<Vec<String>, Error> {
+        let url = format!("{}/collections", self.url_base);
         let client = reqwest::Client::new();
-
-        let res = match &self.api_key {
+        let result = match &self.api_key {
             Some(api_key) => {
                 client
                     .get(&url)
                     .header("api-key", api_key)
                     .header("Content-Type", "application/json")
                     .send()
-                    .await?
+                    .await
             }
             None => {
                 client
                     .get(&url)
                     .header("Content-Type", "application/json")
                     .send()
-                    .await?
+                    .await
             }
         };
 
-        match res.status().is_success() {
-            true => {
-                // get response body as json
-                let json = res.json::<Value>().await?;
-                let exists = json
-                    .get("result")
-                    .unwrap()
-                    .get("exists")
-                    .unwrap()
-                    .as_bool()
-                    .unwrap();
+        let response = match result {
+            Ok(response) => response,
+            Err(e) => {
+                #[cfg(feature = "logging")]
+                error!(target: "stdout", "{}", e);
+
+                bail!("{}", e);
+            }
+        };
+
+        match response.status().is_success() {
+            true => match response.json::<Value>().await {
+                Ok(json) => match json.get("result") {
+                    Some(result) => match result.get("collections") {
+                        Some(collections) => match collections.as_array() {
+                            Some(collections) => {
+                                let mut collection_names: Vec<String> = Vec::<String>::new();
+
+                                for collection in collections {
+                                    let name = collection.get("name").unwrap().as_str().unwrap();
+                                    collection_names.push(name.to_string());
+                                }
+
+                                Ok(collection_names)
+                            },
+                            None => bail!("[qdrant] The value corresponding to the 'collections' key is not an array."),
+                        },
+                        None => bail!("[qdrant] The given key 'collections' does not exist."),
+                    },
+                    None => bail!("[qdrant] The given key 'result' does not exist."),
+                },
+                Err(e) => {
+                    #[cfg(feature = "logging")]
+                    error!(target: "stdout", "{}", e);
+
+                    bail!("{}", e);
+                }
+            }
+            false => bail!("[qdrant] Failed to list collections"),
+        }
+    }
+
+    pub async fn collection_exists_api(&self, collection_name: &str) -> Result<bool, Error> {
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "check collection existence: {}", collection_name);
+
+        let url = format!("{}/collections/{}/exists", self.url_base, collection_name,);
+        let client = reqwest::Client::new();
+
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "check collection existence: {}", url);
+
+        let result = match &self.api_key {
+            Some(api_key) => {
+                client
+                    .get(&url)
+                    .header("api-key", api_key)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await
+            }
+            None => {
+                client
+                    .get(&url)
+                    .header("Content-Type", "application/json")
+                    .send()
+                    .await
+            }
+        };
+
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "result: {:?}", result);
+
+        let response = match result {
+            Ok(response) => response,
+            Err(e) => {
+                #[cfg(feature = "logging")]
+                error!(target: "stdout", "{}", e);
+
+                bail!("{}", e);
+            }
+        };
+
+        let json = match response.json::<Value>().await {
+            Ok(json) => json,
+            Err(e) => {
+                #[cfg(feature = "logging")]
+                error!(target: "stdout", "{}", e);
+
+                bail!("{}", e);
+            }
+        };
+
+        #[cfg(feature = "logging")]
+        info!(target: "stdout", "json: {:?}", json);
+
+        match json.get("result") {
+            Some(result) => {
+                let exists = result.get("exists").unwrap().as_bool().unwrap();
                 Ok(exists)
             }
-            false => Err(anyhow!("[qdrant] Failed to check collection existence")),
+            None => Err(anyhow!("[qdrant] Failed to check collection existence")),
         }
+
+        // match res.status().is_success() {
+        //     true => {
+        //         // get response body as json
+        //         let json = res.json::<Value>().await?;
+        //         let exists = json
+        //             .get("result")
+        //             .unwrap()
+        //             .get("exists")
+        //             .unwrap()
+        //             .as_bool()
+        //             .unwrap();
+        //         Ok(exists)
+        //     }
+        //     false => Err(anyhow!("[qdrant] Failed to check collection existence")),
+        // }
     }
 
     pub async fn delete_collection_api(&self, collection_name: &str) -> Result<bool, Error> {
