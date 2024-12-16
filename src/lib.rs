@@ -6,12 +6,31 @@ use anyhow::{anyhow, bail, Error};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::{Map, Value};
+use std::fmt::Display;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PointId {
     Uuid(String),
     Num(u64),
+}
+impl From<u64> for PointId {
+    fn from(num: u64) -> Self {
+        PointId::Num(num)
+    }
+}
+impl From<String> for PointId {
+    fn from(uuid: String) -> Self {
+        PointId::Uuid(uuid)
+    }
+}
+impl Display for PointId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PointId::Uuid(uuid) => write!(f, "{}", uuid),
+            PointId::Num(num) => write!(f, "{}", num),
+        }
+    }
 }
 
 /// The point struct.
@@ -179,7 +198,7 @@ impl Qdrant {
     pub async fn search_points(
         &self,
         collection_name: &str,
-        point: Vec<f32>,
+        vector: Vec<f32>,
         limit: u64,
         score_threshold: Option<f32>,
     ) -> Result<Vec<ScoredPoint>, Error> {
@@ -192,7 +211,7 @@ impl Qdrant {
         };
 
         let params = json!({
-            "vector": point,
+            "vector": vector,
             "limit": limit,
             "with_payload": true,
             "with_vector": true,
@@ -226,7 +245,7 @@ impl Qdrant {
         }
     }
 
-    pub async fn get_points(&self, collection_name: &str, ids: Vec<u64>) -> Vec<Point> {
+    pub async fn get_points(&self, collection_name: &str, ids: &[PointId]) -> Vec<Point> {
         #[cfg(feature = "logging")]
         info!(target: "stdout", "get points from collection '{}'", collection_name);
 
@@ -246,7 +265,7 @@ impl Qdrant {
         ps
     }
 
-    pub async fn get_point(&self, collection_name: &str, id: u64) -> Point {
+    pub async fn get_point(&self, collection_name: &str, id: &PointId) -> Point {
         #[cfg(feature = "logging")]
         info!(target: "stdout", "get point from collection '{}' with id {}", collection_name, id);
 
@@ -255,7 +274,7 @@ impl Qdrant {
         serde_json::from_value(r.clone()).unwrap()
     }
 
-    pub async fn delete_points(&self, collection_name: &str, ids: Vec<u64>) -> Result<(), Error> {
+    pub async fn delete_points(&self, collection_name: &str, ids: &[PointId]) -> Result<(), Error> {
         #[cfg(feature = "logging")]
         info!(target: "stdout", "delete points from collection '{}'", collection_name);
 
@@ -651,7 +670,7 @@ impl Qdrant {
         Ok(json)
     }
 
-    pub async fn get_point_api(&self, collection_name: &str, id: u64) -> Result<Value, Error> {
+    pub async fn get_point_api(&self, collection_name: &str, id: &PointId) -> Result<Value, Error> {
         let url = format!(
             "{}/collections/{}/points/{}",
             self.url_base, collection_name, id,
