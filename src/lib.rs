@@ -87,6 +87,13 @@ impl Qdrant {
     }
 }
 
+impl Default for Qdrant {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Shortcut functions
 impl Qdrant {
     /// Shortcut functions
     pub async fn collection_info(&self, collection_name: &str) -> u64 {
@@ -205,10 +212,7 @@ impl Qdrant {
         #[cfg(feature = "logging")]
         info!(target: "stdout", "search points in collection '{}'", collection_name);
 
-        let score_threshold = match score_threshold {
-            Some(v) => v,
-            None => 0.0,
-        };
+        let score_threshold = score_threshold.unwrap_or(0.0);
 
         let params = json!({
             "vector": vector,
