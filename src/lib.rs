@@ -218,29 +218,39 @@ impl Qdrant {
             "score_threshold": score_threshold,
         });
 
-        let v = match self.search_points_api(collection_name, &params).await {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(e);
-            }
-        };
+        match self.search_points_api(collection_name, &params).await {
+            Ok(v) => {
+                match v.get("result") {
+                    Some(v) => match v.as_array() {
+                        Some(rs) => {
+                            let mut sps: Vec<ScoredPoint> = Vec::<ScoredPoint>::new();
+                            for r in rs {
+                                let sp: ScoredPoint = serde_json::from_value(r.clone()).unwrap();
+                                sps.push(sp);
+                            }
+                            Ok(sps)
+                        }
+                        None => {
+                            bail!("[qdrant] The value corresponding to the 'result' key is not an array.")
+                        }
+                    },
+                    None => {
+                        let warn_msg = "[qdrant] The given key 'result' does not exist.";
 
-        match v.get("result") {
-            Some(v) => match v.as_array() {
-                Some(rs) => {
-                    let mut sps: Vec<ScoredPoint> = Vec::<ScoredPoint>::new();
-                    for r in rs {
-                        let sp: ScoredPoint = serde_json::from_value(r.clone()).unwrap();
-                        sps.push(sp);
+                        #[cfg(feature = "logging")]
+                        warn!(target: "stdout", "{}", warn_msg);
+
+                        Ok(vec![])
                     }
-                    return Ok(sps);
                 }
-                None => {
-                    bail!("[qdrant] The value corresponding to the 'result' key is not an array.");
-                }
-            },
-            None => {
-                bail!("[qdrant] The given key 'result' does not exist.");
+            }
+            Err(e) => {
+                let warn_msg = format!("[qdrant] Failed to search points: {}", e);
+
+                #[cfg(feature = "logging")]
+                warn!(target: "stdout", "{}", warn_msg);
+
+                Ok(vec![])
             }
         }
     }
