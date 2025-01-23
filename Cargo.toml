@@ -1,6 +1,6 @@
 [package]
 name = "qdrant_rest_client"
-version = "0.2.0"
+version = "0.2.1"
 license = "Apache-2.0"
 description = "The Qdrant SDK for WebAssembly."
 repository = "https://github.com/second-state/qdrant-rest-client"
