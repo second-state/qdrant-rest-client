@@ -15,19 +15,18 @@ reqwest = { git = "https://github.com/second-state/wasi_reqwest.git", branch = "
 hyper = { git = "https://github.com/second-state/wasi_hyper.git", branch = "v0.14.x" }
 tokio = { git = "https://github.com/second-state/wasi_tokio.git", branch = "v1.36.x" }
 
-
 [lib]
 name = "qdrant"
 path = "src/lib.rs"
 
 [dependencies]
+anyhow = "1.0"
+http = "1.1"
+log = { version = "0.4.21", features = ["std", "kv", "kv_serde"], optional = true }
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
-tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-http = "1.1"
-anyhow = "1.0"
-log = { version = "0.4.21", features = ["std", "kv", "kv_serde"], optional = true }
+tokio = { version = "1", features = ["full"] }
 
 [features]
 default = ["logging"]
